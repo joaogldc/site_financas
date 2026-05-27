@@ -417,7 +417,7 @@ async function saveEntry() {
   if (!value || value <= 0) { showToast('Informe um valor válido', 'error'); return; }
   if (!date) { showToast('Informe a data', 'error'); return; }
 
-  const payload = { user_id: _USER.id, type: currentType, category: cat, subcategory: subcat, value, date, desc };
+  const payload = { user_id: _USER.id, type: currentType, category: cat, subcategory: subcat, value, date, descricao: desc };
   showLoading(true);
 
   let error;
@@ -500,7 +500,7 @@ function openModal(id = null) {
       }, 10);
       document.getElementById('valueInput').value = entry.value;
       document.getElementById('dateInput').value = entry.date.split('T')[0];
-      document.getElementById('descInput').value = entry.desc || '';
+      document.getElementById('descInput').value = entry.descricao || '';
     }
   } else {
     setType('ganho'); document.getElementById('valueInput').value = '';
