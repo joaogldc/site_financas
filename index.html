@@ -3,15 +3,16 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-<title>Finanças Pessoais</title>
+<title>Finanças Pessoais FP</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0c0c0e">
 <link rel="manifest" href="manifest.json">
-<link rel="icon" type="image/png" href="PF.png">
+<link rel="icon" type="image/png" href="icone.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root {
     --bg:        #0c0c0e;
@@ -24,7 +25,7 @@
     --muted2:    #444;
     --gain:      #3ecf7c;
     --gain-dim:  rgba(62,207,124,0.12);
-    --loss:      #ff6b6b;
+    --loss: #ff6b6b;
     --loss-dim:  rgba(255,107,107,0.12);
     --blue:      #5b8fff;
     --blue-dim:  rgba(91,143,255,0.12);
@@ -37,8 +38,18 @@
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; font-size: 14px; line-height: 1.5; padding-bottom: 70px; }
 
-  /* ── LAYOUT ── */
-  .app { display: grid; grid-template-columns: 220px 1fr; grid-template-rows: auto 1fr; min-height: 100vh; }
+  /* ── TELA DE AUTH ── */
+  .auth-container { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; background: var(--bg); }
+  .auth-card { background: var(--surface); border: 1px solid var(--border2); border-radius: 16px; padding: 32px; width: 100%; max-width: 400px; text-align: center; }
+  .auth-logo { font-size: 24px; font-weight: 500; letter-spacing: -0.5px; margin-bottom: 6px; }
+  .auth-logo span { color: var(--gain); }
+  .auth-subtitle { font-size: 12px; color: var(--muted); margin-bottom: 24px; font-family: var(--mono); }
+  .auth-toggle { font-size: 13px; color: var(--muted); margin-top: 16px; cursor: pointer; display: inline-block; text-decoration: underline; }
+  .auth-toggle:hover { color: var(--text); }
+
+  /* ── LAYOUT PRINCIPAL ── */
+  #app-interface { display: none; }
+  .app-layout { display: grid; grid-template-columns: 220px 1fr; grid-template-rows: auto 1fr; min-height: 100vh; }
   .sidebar { grid-row: 1 / 3; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 28px 0 20px; }
   .topbar { border-bottom: 1px solid var(--border); padding: 0 28px; height: 60px; display: flex; align-items: center; justify-content: space-between; background: var(--bg); position: sticky; top: 0; z-index: 10; }
   .content { padding: 28px; overflow-y: auto; }
@@ -51,28 +62,25 @@
   .nav-section { padding: 0 12px; margin-bottom: 6px; }
   .nav-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; padding: 0 8px; margin-bottom: 6px; }
   .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: var(--radius-sm); cursor: pointer; font-size: 13px; color: #888; transition: all 0.15s; position: relative; }
-  .nav-item:hover { background: var(--surface2); color: var(--text); }
-  .nav-item.active { background: var(--surface2); color: var(--text); }
+  .nav-item:hover, .nav-item.active { background: var(--surface2); color: var(--text); }
   .nav-item.active::before { content:''; position:absolute; left:0; top:50%; transform:translateY(-50%); width:3px; height:18px; background:var(--gain); border-radius:0 3px 3px 0; }
   
   .sidebar-footer { margin-top: auto; padding: 16px 20px 0; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 12px; }
-  .select-wrap { position: relative; }
-  .select-wrap label { font-size: 11px; color: var(--muted); display: block; margin-bottom: 4px; }
+  .user-badge { font-size: 12px; color: #ccc; font-family: var(--mono); background: var(--surface2); padding: 6px 10px; border-radius: var(--radius-sm); border: 1px solid var(--border); text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
   select { width: 100%; background: var(--surface2); border: 1px solid var(--border2); color: var(--text); padding: 8px 10px; border-radius: var(--radius-sm); font-family: var(--font); font-size: 13px; cursor: pointer; appearance: none; }
-  select:focus { outline: none; border-color: var(--gain); }
 
   /* ── TOPBAR ── */
   .topbar-title { font-size: 15px; font-weight: 500; }
   .btn { display: inline-flex; align-items: center; gap: 7px; padding: 8px 16px; border-radius: var(--radius-sm); font-family: var(--font); font-size: 13px; cursor: pointer; border: none; transition: all 0.15s; font-weight: 400; }
-  .btn-primary { background: var(--gain); color: #000; }
+  .btn-primary { background: var(--gain); color: #000; width: 100%; justify-content: center; }
   .btn-primary:hover { background: #5ddf96; }
   .btn-ghost { background: var(--surface2); color: var(--text); border: 1px solid var(--border2); }
   .btn-ghost:hover { background: #242427; }
   .loading-indicator { font-size: 12px; color: var(--amber); display: none; font-family: var(--mono); }
 
-  /* ── SUMMARY CARDS ── */
+  /* ── DASHBOARD COMPONENTES ── */
   .summary-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 24px; }
-  .scard { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; position: relative; overflow: hidden; }
+  .scard { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; }
   .scard-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; }
   .scard-value { font-size: 26px; font-weight: 300; font-family: var(--mono); letter-spacing: -1px; }
   .scard.gain .scard-value { color: var(--gain); }
@@ -80,39 +88,32 @@
   .scard.bal .scard-value { color: var(--blue); }
   .scard-sub { font-size: 11px; color: var(--muted); margin-top: 5px; }
 
-  /* ── GRID SECTIONS ── */
   .main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
   .panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
   .panel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
   .panel-title { font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 8px; }
-  .dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
 
   /* ── CATEGORY ROWS ── */
   .cat-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
-  .cat-row:last-child { border-bottom: none; }
   .cat-name { font-size: 13px; color: #ccc; flex: 1; }
   .cat-bar-wrap { width: 70px; height: 3px; background: var(--surface2); border-radius: 2px; }
   .cat-bar { height: 100%; border-radius: 2px; }
   .cat-amt { font-family: var(--mono); font-size: 12px; min-width: 80px; text-align: right; }
   .sub-item { padding: 5px 0 5px 14px; border-bottom: 1px solid rgba(255,255,255,0.04); display: flex; align-items: center; gap: 8px; }
-  .sub-item:last-child { border-bottom: none; }
   .sub-name { font-size: 12px; color: var(--muted); flex: 1; }
   .sub-amt { font-family: var(--mono); font-size: 12px; color: var(--muted); }
 
-  /* ── CHARTS ── */
   .chart-wrap { position: relative; height: 200px; }
-
-  /* ── TRANSACTIONS TABLE ── */
   .transactions { width: 100%; border-collapse: collapse; }
-  .transactions th { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.7px; padding: 0 12px 10px; text-align: left; font-weight: 400; }
+  .transactions th { font-size: 11px; color: var(--muted); text-transform: uppercase; padding: 0 12px 10px; text-align: left; font-weight: 400; }
   .transactions td { padding: 11px 12px; border-bottom: 1px solid var(--border); font-size: 13px; }
-  .transactions tr:last-child td { border-bottom: none; }
   .td-gain { font-family: var(--mono); color: var(--gain); }
   .td-loss { font-family: var(--mono); color: var(--loss); }
   .td-date { color: var(--muted); font-family: var(--mono); font-size: 12px; }
   .td-desc { color: #bbb; }
   .td-actions { display: flex; gap: 6px; }
-  .icon-btn { background: none; border: none; color: var(--muted); cursor: pointer; padding: 4px; border-radius: 4px; font-size: 15px; }
+  .icon-btn { background: none; border: none; color: var(--muted); cursor: pointer; padding: 4px; border-radius: 4px; font-size: 14px; }
   .icon-btn.del:hover { color: var(--loss); }
 
   /* ── MODAL ── */
@@ -123,9 +124,10 @@
   .form-group { margin-bottom: 16px; }
   .form-group label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
   .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  input[type="text"], input[type="number"], input[type="date"], select.form-select {
+  input[type="text"], input[type="number"], input[type="date"], input[type="email"], input[type="password"], select.form-select {
     width: 100%; background: var(--surface2); border: 1px solid var(--border2); color: var(--text); padding: 9px 12px; border-radius: var(--radius-sm); font-family: var(--font); font-size: 13px;
   }
+  input:focus, select:focus { outline: none; border-color: var(--gain); }
   .modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 22px; }
   .type-toggle { display: flex; gap: 8px; }
   .type-btn { flex: 1; padding: 9px; border-radius: var(--radius-sm); border: 1px solid var(--border2); background: var(--surface2); color: var(--muted); cursor: pointer; text-align: center; }
@@ -141,14 +143,13 @@
   .month-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; cursor: pointer; }
   .month-card-row { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px; }
 
-  /* ── BOTTOM MENU BAR (MOBILE EXCLUSIVE) ── */
+  /* ── MOBILE NAV ── */
   .mobile-nav { display: none; position: fixed; bottom: 0; left: 0; right: 0; height: 65px; background: var(--surface); border-top: 1px solid var(--border); grid-template-columns: repeat(4, 1fr); z-index: 90; }
   .mobile-nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 11px; color: #666; cursor: pointer; gap: 4px; }
   .mobile-nav-item.active { color: var(--gain); }
-  .mobile-nav-icon { font-size: 20px; }
 
   @media (max-width: 768px) {
-    .app { grid-template-columns: 1fr; }
+    .app-layout { grid-template-columns: 1fr; }
     .sidebar { display: none; }
     .mobile-nav { display: grid; }
     .summary-cards { grid-template-columns: 1fr; }
@@ -160,118 +161,130 @@
 </style>
 </head>
 <body>
-<div class="app">
 
-  <aside class="sidebar">
-    <div class="logo">
-      <div class="logo-mark">fin<span>.</span>pessoal</div>
-      <div class="logo-sub">controle em nuvem</div>
-    </div>
-    <div class="nav-section">
-      <div class="nav-label">Navegação</div>
-      <div class="nav-item active" onclick="setView('dashboard')">◈ Dashboard</div>
-      <div class="nav-item" onclick="setView('transactions')">≡ Lançamentos</div>
-      <div class="nav-item" onclick="setView('history')">◷ Histórico</div>
-    </div>
-    <div class="sidebar-footer">
-      <div class="select-wrap">
-        <label>Usuário</label>
-        <select id="userSelect" onchange="onUserChange()">
-          <option value="Joao">João</option>
-          <option value="Mae">Mãe</option>
-        </select>
+<div id="auth-interface" class="auth-container">
+  <div class="auth-card">
+    <div class="auth-logo">fin<span>.</span>pessoal</div>
+    <div class="auth-subtitle" id="auth-title-mode">Faça login para gerenciar</div>
+    <form id="authForm" onsubmit="handleAuth(event)" style="display:flex; flex-direction:column; gap:12px; text-align:left;">
+      <div class="form-group">
+        <label>E-mail</label>
+        <input type="email" id="authEmail" required placeholder="seu@email.com"/>
       </div>
-      <div class="select-wrap">
-        <label>Visualizando</label>
-        <select id="monthSelect" onchange="onMonthChange()"></select>
+      <div class="form-group">
+        <label>Senha</label>
+        <input type="password" id="authPassword" required placeholder="••••••••" minlength="6"/>
       </div>
-    </div>
-  </aside>
+      <button type="submit" class="btn btn-primary" id="authSubmitBtn" style="padding:11px; font-weight:500;">Entrar</button>
+    </form>
+    <span class="auth-toggle" id="authToggleLink" onclick="toggleAuthMode()">Não tem conta? Cadastre-se</span>
+  </div>
+</div>
 
-  <nav class="mobile-nav">
-    <div class="mobile-nav-item active" id="m-dash" onclick="setView('dashboard')"><span class="mobile-nav-icon">◈</span>Dash</div>
-    <div class="mobile-nav-item" id="m-trans" onclick="setView('transactions')"><span class="mobile-nav-icon">≡</span>Lista</div>
-    <div class="mobile-nav-item" id="m-hist" onclick="setView('history')"><span class="mobile-nav-icon">◷</span>Histórico</div>
-    <div class="mobile-nav-item" onclick="openModal()" style="color: var(--gain)"><span class="mobile-nav-icon">＋</span>Add</div>
-  </nav>
-
-  <header class="topbar">
-    <div style="display:flex; flex-direction:column; gap:2px;">
-      <div class="topbar-title" id="viewTitle">Dashboard</div>
-      <span class="loading-indicator" id="loadingIndicator">☁ Sincronizando...</span>
-    </div>
-    <div style="display:flex; gap:8px; align-items:center;">
-      <select id="mobileUserSelect" onchange="onMobileUserChange()" style="display:none; width:80px; padding:5px; font-size:12px;">
-        <option value="Joao">João</option>
-        <option value="Mae">Mãe</option>
-      </select>
-      <select id="mobileMonthSelect" onchange="onMobileMonthChange()" style="display:none; width:95px; padding:5px; font-size:12px;"></select>
-      <button class="btn btn-primary" onclick="openModal()">＋ Novo</button>
-    </div>
-  </header>
-
-  <main class="content">
-    <div id="view-dashboard" class="view active">
-      <div class="summary-cards">
-        <div class="scard gain">
-          <div class="scard-label">Total Ganhos</div>
-          <div class="scard-value" id="totalGain">R$ 0,00</div>
-          <div class="scard-sub" id="gainSub">—</div>
+<div id="app-interface">
+  <div class="app-layout">
+    <aside class="sidebar">
+      <div class="logo">
+        <div class="logo-mark">fin<span>.</span>pessoal</div>
+        <div class="logo-sub">banco de dados em nuvem</div>
+      </div>
+      <div class="nav-section">
+        <div class="nav-label">Navegação</div>
+        <div class="nav-item active" id="d-dash" onclick="setView('dashboard')">◈ Dashboard</div>
+        <div class="nav-item" id="d-trans" onclick="setView('transactions')">≡ Lançamentos</div>
+        <div class="nav-item" id="d-hist" onclick="setView('history')">◷ Histórico</div>
+      </div>
+      <div class="sidebar-footer">
+        <div class="select-wrap">
+          <label>Mês de Referência</label>
+          <select id="monthSelect" onchange="onMonthChange()"></select>
         </div>
-        <div class="scard loss">
-          <div class="scard-label">Total Despesas</div>
-          <div class="scard-value" id="totalLoss">R$ 0,00</div>
-          <div class="scard-sub" id="lossSub">—</div>
+        <div class="user-badge" id="userBadgeEmail">carregando...</div>
+        <button class="btn btn-ghost" onclick="handleLogout()" style="padding:6px; font-size:11px;">✕ Sair do App</button>
+      </div>
+    </aside>
+
+    <nav class="mobile-nav">
+      <div class="mobile-nav-item active" id="m-dash" onclick="setView('dashboard')">◈<br>Dash</div>
+      <div class="mobile-nav-item" id="m-trans" onclick="setView('transactions')">≡<br>Lista</div>
+      <div class="mobile-nav-item" id="m-hist" onclick="setView('history')">◷<br>Histórico</div>
+      <div class="mobile-nav-item" onclick="handleLogout()" style="color:var(--loss)">✕<br>Sair</div>
+    </nav>
+
+    <header class="topbar">
+      <div style="display:flex; flex-direction:column; gap:2px;">
+        <div class="topbar-title" id="viewTitle">Dashboard</div>
+        <span class="loading-indicator" id="loadingIndicator">☁ Sincronizando...</span>
+      </div>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <select id="mobileMonthSelect" onchange="onMobileMonthChange()" style="display:none; width:110px; padding:5px; font-size:12px;"></select>
+        <button class="btn btn-primary" onclick="openModal()" style="width:auto;">＋ Novo</button>
+      </div>
+    </header>
+
+    <main class="content">
+      <div id="view-dashboard" class="view active">
+        <div class="summary-cards">
+          <div class="scard gain">
+            <div class="scard-label">Total Ganhos</div>
+            <div class="scard-value" id="totalGain">R$ 0,00</div>
+            <div class="scard-sub" id="gainSub">—</div>
+          </div>
+          <div class="scard loss">
+            <div class="scard-label">Total Despesas</div>
+            <div class="scard-value" id="totalLoss">R$ 0,00</div>
+            <div class="scard-sub" id="lossSub">—</div>
+          </div>
+          <div class="scard bal">
+            <div class="scard-label">Saldo do Mês</div>
+            <div class="scard-value" id="totalBalance">R$ 0,00</div>
+            <div class="scard-sub" id="balSub">—</div>
+          </div>
         </div>
-        <div class="scard bal">
-          <div class="scard-label">Saldo do Mês</div>
-          <div class="scard-value" id="totalBalance">R$ 0,00</div>
-          <div class="scard-sub" id="balSub">—</div>
+
+        <div class="main-grid">
+          <div class="panel">
+            <div class="panel-header"><div class="panel-title"><span class="dot" style="background:var(--gain)"></span> Ganhos</div></div>
+            <div id="gainBreakdown"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-header"><div class="panel-title"><span class="dot" style="background:var(--loss)"></span> Despesas</div></div>
+            <div id="lossBreakdown"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-header"><div class="panel-title"><span class="dot" style="background:var(--blue)"></span> Distribuição</div></div>
+            <div class="chart-wrap"><canvas id="pieChart"></canvas></div>
+          </div>
+          <div class="panel">
+            <div class="panel-header"><div class="panel-title"><span class="dot" style="background:var(--amber)"></span> Comparativo</div></div>
+            <div class="chart-wrap"><canvas id="barChart"></canvas></div>
+          </div>
         </div>
       </div>
 
-      <div class="main-grid">
+      <div id="view-transactions" class="view">
         <div class="panel">
-          <div class="panel-header"><div class="panel-title"><span class="dot" style="background:var(--gain)"></span> Ganhos</div></div>
-          <div id="gainBreakdown"></div>
-        </div>
-        <div class="panel">
-          <div class="panel-header"><div class="panel-title"><span class="dot" style="background:var(--loss)"></span> Despesas</div></div>
-          <div id="lossBreakdown"></div>
-        </div>
-        <div class="panel">
-          <div class="panel-header"><div class="panel-title"><span class="dot" style="background:var(--blue)"></span> Distribuição</div></div>
-          <div class="chart-wrap"><canvas id="pieChart"></canvas></div>
-        </div>
-        <div class="panel">
-          <div class="panel-header"><div class="panel-title"><span class="dot" style="background:var(--amber)"></span> Comparativo</div></div>
-          <div class="chart-wrap"><canvas id="barChart"></canvas></div>
+          <div class="panel-header">
+            <div class="panel-title">Todos os lançamentos</div>
+            <select class="form-select" id="filterType" onchange="renderTransactions()" style="width:110px;">
+              <option value="">Todos</option>
+              <option value="ganho">Ganhos</option>
+              <option value="despesa">Despesas</option>
+            </select>
+          </div>
+          <div id="transactionsTable"></div>
         </div>
       </div>
-    </div>
 
-    <div id="view-transactions" class="view">
-      <div class="panel">
-        <div class="panel-header">
-          <div class="panel-title">Todos os lançamentos</div>
-          <select class="form-select" id="filterType" onchange="renderTransactions()" style="width:110px;">
-            <option value="">Todos</option>
-            <option value="ganho">Ganhos</option>
-            <option value="despesa">Despesas</option>
-          </select>
+      <div id="view-history" class="view">
+        <div class="panel" style="margin-bottom:20px">
+          <div class="panel-header"><div class="panel-title">Evolução de Saldo</div></div>
+          <div class="chart-wrap" style="height:240px"><canvas id="historyChart"></canvas></div>
         </div>
-        <div id="transactionsTable"></div>
+        <div class="history-months" id="historyMonths"></div>
       </div>
-    </div>
-
-    <div id="view-history" class="view">
-      <div class="panel" style="margin-bottom:20px">
-        <div class="panel-header"><div class="panel-title">Evolução de Saldo</div></div>
-        <div class="chart-wrap" style="height:240px"><canvas id="historyChart"></canvas></div>
-      </div>
-      <div class="history-months" id="historyMonths"></div>
-    </div>
-  </main>
+    </main>
+  </div>
 </div>
 
 <div class="modal-overlay" id="modal" onclick="closeModalOnOverlay(event)">
@@ -306,11 +319,11 @@
     </div>
     <div class="form-group">
       <label>Descrição (opcional)</label>
-      <input type="text" id="descInput" placeholder="Ex: Mercado mensal"/>
+      <input type="text" id="descInput" placeholder="Ex: Conta de luz"/>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
-      <button class="btn btn-primary" onclick="saveEntry()" id="saveBtn">Salvar</button>
+      <button class="btn btn-primary" onclick="saveEntry()" id="saveBtn" style="width:auto;">Salvar</button>
     </div>
   </div>
 </div>
@@ -318,13 +331,12 @@
 <div class="toast" id="toast"></div>
 
 <script>
-// LINK DA SUA PONTE DO GOOGLE SHEETS
-const CLOUD_URL = "https://script.google.com/macros/s/AKfycbx4XC1D_53WMhBgxZzQuv2Q3gFOteFZ5nd3vWpqEOeqywXWMKUL05lXsRYWL6omkTH-Rg/exec";
+// CONFIGURAÇÃO DO SEU SUPABASE INTEGRADO
+const SUPABASE_URL = "https://zqyaaukfcpetkwfoexyj.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_mAEjx6IglsaijdRvNfx6XQ_4S1Wn9aw";
+const supabase = createClient.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-if(window.innerWidth <= 768) { 
-  document.getElementById('mobileMonthSelect').style.display = 'block'; 
-  document.getElementById('mobileUserSelect').style.display = 'block'; 
-}
+if(window.innerWidth <= 768) { document.getElementById('mobileMonthSelect').style.display = 'block'; }
 
 const SCHEMA = {
   ganho: { 'Salário': [], 'Investimento': ['Renda Fixa', 'Ações', 'FIIs', 'Cripto', 'Outros'], 'Outros': [] },
@@ -332,105 +344,142 @@ const SCHEMA = {
 };
 const LOSS_COLORS = ['#ff6b6b','#ff9b54','#f5a623','#a78bfa','#5b8fff','#3ecf7c','#67e8f9','#f472b6'];
 
-let currentType = 'ganho', editId = null, pieChartInst = null, barChartInst = null, histChartInst = null;
-let _ALL_ENTRIES = [];
+let currentType = 'ganho', editId = null, isSignUpMode = false;
+let pieChartInst = null, barChartInst = null, histChartInst = null;
+let _ALL_ENTRIES = [], _USER = null;
 
-function showLoading(show) {
-  document.getElementById('loadingIndicator').style.display = show ? 'inline' : 'none';
+function showLoading(show) { document.getElementById('loadingIndicator').style.display = show ? 'inline' : 'none'; }
+
+// ── SISTEMA DE AUTENTICAÇÃO REAL ──
+function toggleAuthMode() {
+  isSignUpMode = !isSignUpMode;
+  document.getElementById('auth-title-mode').textContent = isSignUpMode ? 'Crie sua nova conta' : 'Faça login para gerenciar';
+  document.getElementById('authSubmitBtn').textContent = isSignUpMode ? 'Cadastrar' : 'Entrar';
+  document.getElementById('authToggleLink').textContent = isSignUpMode ? 'Já tem conta? Faça Login' : 'Não tem conta? Cadastre-se';
 }
 
-// CONEXÃO DE LEITURA NA NUVEM
+async function handleAuth(e) {
+  e.preventDefault();
+  const email = document.getElementById('authEmail').value.trim();
+  const password = document.getElementById('authPassword').value;
+  showLoading(true);
+
+  if (isSignUpMode) {
+    const { data, error } = await supabase.auth.signUp({ email, password });
+    if (error) { showToast(error.message, 'error'); } 
+    else { showToast('Conta criada! Faça login agora.', 'success'); toggleAuthMode(); }
+  } else {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) { showToast('E-mail ou senha incorretos.', 'error'); } 
+    else { checkUserSession(); }
+  }
+  showLoading(false);
+}
+
+async function handleLogout() {
+  await supabase.auth.signOut();
+  _USER = null; _ALL_ENTRIES = [];
+  document.getElementById('app-interface').style.display = 'none';
+  document.getElementById('auth-interface').style.display = 'flex';
+}
+
+async function checkUserSession() {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session) {
+    _USER = session.user;
+    document.getElementById('auth-interface').style.display = 'none';
+    document.getElementById('app-interface').style.display = 'block';
+    document.getElementById('userBadgeEmail').textContent = _USER.email;
+    buildCatSelect();
+    await loadFromCloud();
+    buildMonthSelects();
+    refresh();
+  } else {
+    document.getElementById('app-interface').style.display = 'none';
+    document.getElementById('auth-interface').style.display = 'flex';
+  }
+}
+
+// ── QUERIES DO BANCO DE DADOS (SUPABASE) ──
 async function loadFromCloud() {
+  if (!_USER) return;
   showLoading(true);
-  try {
-    let res = await fetch(CLOUD_URL, {
-      method: "POST",
-      mode: "cors",
-      body: JSON.stringify({ action: "read" })
-    });
-    let result = await res.json();
-    if (result.status === "success") {
-      _ALL_ENTRIES = result.data.map(e => ({
-        ...e,
-        value: parseFloat(e.value)
-      }));
-    }
-  } catch (err) {
-    showToast("Erro ao carregar dados da nuvem", "error");
-    console.error(err);
+  const { data, error } = await supabase.from('lancamentos').select('*');
+  if (!error && data) {
+    _ALL_ENTRIES = data.map(e => ({ ...e, value: parseFloat(e.value) }));
   }
   showLoading(false);
 }
 
-// CONEXÃO DE ESCRITA NA NUVEM
-async function writeToCloud(entry) {
+async function saveEntry() {
+  const value = parseFloat(document.getElementById('valueInput').value);
+  const date = document.getElementById('dateInput').value;
+  const cat = document.getElementById('catSelect').value;
+  const subs = SCHEMA[currentType][cat] || [];
+  const subcat = subs.length > 0 ? document.getElementById('subcatSelect').value : null;
+  const desc = document.getElementById('descInput').value.trim();
+
+  if (!value || value <= 0) { showToast('Informe um valor válido', 'error'); return; }
+  if (!date) { showToast('Informe a data', 'error'); return; }
+
+  const payload = { user_id: _USER.id, type: currentType, category: cat, subcategory: subcat, value, date, desc };
   showLoading(true);
-  try {
-    await fetch(CLOUD_URL, {
-      method: "POST",
-      mode: "cors",
-      body: JSON.stringify({ action: "save", data: entry })
-    });
-  } catch (err) {
-    showToast("Erro ao salvar dados na nuvem", "error");
-    console.error(err);
+
+  let error;
+  if (editId) {
+    const { error: err } = await supabase.from('lancamentos').update(payload).eq('id', editId);
+    error = err;
+  } else {
+    const { error: err } = await supabase.from('lancamentos').insert([payload]);
+    error = err;
   }
-  showLoading(false);
+
+  closeModal();
+  if (!error) {
+    showToast('Salvo com sucesso ✓', 'success');
+    await loadFromCloud();
+    buildMonthSelects();
+    refresh();
+  } else {
+    showToast('Erro ao salvar no banco', 'error');
+  }
 }
 
-// CONEXÃO DE EXCLUSÃO NA NUVEM
-async function deleteFromCloud(id) {
+async function deleteEntry(id) {
+  if (!confirm('Deseja deletar este lançamento permanentemente?')) return;
   showLoading(true);
-  try {
-    await fetch(CLOUD_URL, {
-      method: "POST",
-      mode: "cors",
-      body: JSON.stringify({ action: "delete", id: id })
-    });
-  } catch (err) {
-    showToast("Erro ao deletar da nuvem", "error");
-    console.error(err);
+  const { error } = await supabase.from('lancamentos').delete().eq('id', id);
+  if (!error) {
+    showToast('Lançamento removido', 'success');
+    await loadFromCloud();
+    buildMonthSelects();
+    refresh();
   }
-  showLoading(false);
 }
 
-function currentUser() {
-  if(window.innerWidth <= 768) { return document.getElementById('mobileUserSelect').value; }
-  return document.getElementById('userSelect').value;
-}
-
+// ── REGRAS DE LAYOUT E RENDER ──
 function currentMonth() {
   if(window.innerWidth <= 768) { return document.getElementById('mobileMonthSelect').value || getMonthKey(new Date()); }
   return document.getElementById('monthSelect').value || getMonthKey(new Date());
 }
-
 function getMonthKey(dateStr) {
   const d = new Date(dateStr + 'T12:00:00');
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
 }
-
 function monthLabel(key) {
   const [y, m] = key.split('-');
   return `${['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'][parseInt(m)-1]} ${y}`;
 }
-
-// FILTRA AS ENTRADAS POR USUÁRIO E POR MÊS
-function entriesForMonth(month) { 
-  return _ALL_ENTRIES.filter(e => e.user === currentUser() && getMonthKey(e.date) === month); 
-}
-
+function entriesForMonth(month) { return _ALL_ENTRIES.filter(e => getMonthKey(e.date) === month); }
 function allMonths() {
-  const userEntries = _ALL_ENTRIES.filter(e => e.user === currentUser());
-  const keys = new Set(userEntries.map(e => getMonthKey(e.date)));
+  const keys = new Set(_ALL_ENTRIES.map(e => getMonthKey(e.date)));
   keys.add(getMonthKey(new Date().toISOString().split('T')[0]));
   return [...keys].sort().reverse();
 }
-
 function buildMonthSelects() {
   const selDesktop = document.getElementById('monthSelect');
   const selMobile = document.getElementById('mobileMonthSelect');
   const current = selDesktop.value || selMobile.value || getMonthKey(new Date().toISOString().split('T')[0]);
-  
   selDesktop.innerHTML = ''; selMobile.innerHTML = '';
   allMonths().forEach(m => {
     let optD = document.createElement('option'), optM = document.createElement('option');
@@ -440,17 +489,12 @@ function buildMonthSelects() {
     selDesktop.appendChild(optD); selMobile.appendChild(optM);
   });
 }
-
 function onMonthChange() { document.getElementById('mobileMonthSelect').value = document.getElementById('monthSelect').value; refresh(); }
 function onMobileMonthChange() { document.getElementById('monthSelect').value = document.getElementById('mobileMonthSelect').value; refresh(); }
-function onUserChange() { document.getElementById('mobileUserSelect').value = document.getElementById('userSelect').value; buildMonthSelects(); refresh(); }
-function onMobileUserChange() { document.getElementById('userSelect').value = document.getElementById('mobileUserSelect').value; buildMonthSelects(); refresh(); }
 
 function openModal(id = null) {
   editId = id;
   document.getElementById('modalTitle').textContent = id ? 'Editar lançamento' : 'Novo lançamento';
-  document.getElementById('saveBtn').textContent = id ? 'Atualizar' : 'Salvar';
-
   if (id) {
     const entry = _ALL_ENTRIES.find(e => e.id.toString() === id.toString());
     if (entry) {
@@ -465,71 +509,27 @@ function openModal(id = null) {
       document.getElementById('descInput').value = entry.desc || '';
     }
   } else {
-    setType('ganho');
-    document.getElementById('valueInput').value = '';
+    setType('ganho'); document.getElementById('valueInput').value = '';
     document.getElementById('dateInput').value = new Date().toISOString().split('T')[0];
     document.getElementById('descInput').value = '';
   }
   document.getElementById('modal').classList.add('open');
 }
-
 function closeModal() { document.getElementById('modal').classList.remove('open'); editId = null; }
 function closeModalOnOverlay(e) { if (e.target === document.getElementById('modal')) closeModal(); }
 function setType(type) { currentType = type; document.getElementById('btnGanho').className = 'type-btn' + (type==='ganho'?' active-gain':''); document.getElementById('btnDespesa').className = 'type-btn' + (type==='despesa'?' active-loss':''); buildCatSelect(); }
 function buildCatSelect() { const sel = document.getElementById('catSelect'); sel.innerHTML = Object.keys(SCHEMA[currentType]).map(c => `<option value="${c}">${c}</option>`).join(''); updateSubcats(); }
 function updateSubcats() {
-  const cat = document.getElementById('catSelect').value;
-  const subs = SCHEMA[currentType][cat] || [];
+  const cat = document.getElementById('catSelect').value; const subs = SCHEMA[currentType][cat] || [];
   const grp = document.getElementById('subcatGroup'), sel = document.getElementById('subcatSelect');
   if (subs.length > 0) { sel.innerHTML = subs.map(s => `<option value="${s}">${s}</option>`).join(''); grp.style.display = ''; } else { grp.style.display = 'none'; }
-}
-
-async function saveEntry() {
-  const value = parseFloat(document.getElementById('valueInput').value);
-  const date = document.getElementById('dateInput').value;
-  const cat = document.getElementById('catSelect').value;
-  const subs = SCHEMA[currentType][cat] || [];
-  const subcat = subs.length > 0 ? document.getElementById('subcatSelect').value : null;
-  const desc = document.getElementById('descInput').value.trim();
-
-  if (!value || value <= 0) { showToast('Informe um valor válido', 'error'); return; }
-  if (!date) { showToast('Informe a data', 'error'); return; }
-
-  let entry = { 
-    id: editId || Date.now().toString(), 
-    user: currentUser(),
-    type: currentType, 
-    category: cat, 
-    subcategory: subcat, 
-    value, 
-    date, 
-    desc 
-  };
-  
-  closeModal();
-  await writeToCloud(entry);
-  showToast(editId ? 'Atualizado na nuvem ✓' : 'Salvo na nuvem ✓', 'success');
-  
-  await loadFromCloud();
-  buildMonthSelects();
-  refresh();
-}
-
-async function deleteEntry(id) {
-  if (!confirm('Excluir este lançamento na nuvem?')) return;
-  await deleteFromCloud(id);
-  await loadFromCloud();
-  buildMonthSelects();
-  refresh();
-  showToast('Lançamento removido', 'error');
 }
 
 function fmt(v) { return 'R$ ' + Math.abs(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 function refresh() { renderDashboard(); renderTransactions(); renderHistory(); }
 
 function renderDashboard() {
-  const month = currentMonth();
-  const entries = entriesForMonth(month);
+  const month = currentMonth(); const entries = entriesForMonth(month);
   const gains = entries.filter(e => e.type === 'ganho'), losses = entries.filter(e => e.type === 'despesa');
   const totalGain = gains.reduce((s, e) => s + e.value, 0), totalLoss = losses.reduce((s, e) => s + e.value, 0), balance = totalGain - totalLoss;
 
@@ -543,8 +543,7 @@ function renderDashboard() {
 
   renderBreakdown('gainBreakdown', gains, totalGain, 'var(--gain)');
   renderBreakdown('lossBreakdown', losses, totalLoss, 'var(--loss)');
-  renderPieChart(losses);
-  renderBarChart(month);
+  renderPieChart(losses); renderBarChart(month);
 }
 
 function renderBreakdown(containerId, entries, total, color) {
@@ -572,7 +571,6 @@ function renderPieChart(losses) {
   if (pieChartInst) pieChartInst.destroy();
   const ctx = document.getElementById('pieChart');
   if (labels.length === 0) { ctx.style.display = 'none'; return; } else { ctx.style.display = ''; }
-
   pieChartInst = new Chart(ctx, {
     type: 'doughnut',
     data: { labels, datasets: [{ data: values, backgroundColor: LOSS_COLORS.slice(0, labels.length), borderWidth: 0 }] },
@@ -585,7 +583,6 @@ function renderBarChart(month) {
   const gainData = months.map(m => entriesForMonth(m).filter(e=>e.type==='ganho').reduce((s,e)=>s+e.value,0));
   const lossData = months.map(m => entriesForMonth(m).filter(e=>e.type==='despesa').reduce((s,e)=>s+e.value,0));
   const labels = months.map(m => { const [y,mo] = m.split('-'); return ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][parseInt(mo)-1]; });
-
   if (barChartInst) barChartInst.destroy();
   barChartInst = new Chart(document.getElementById('barChart'), {
     type: 'bar',
@@ -597,20 +594,17 @@ function renderBarChart(month) {
 function renderTransactions() {
   const container = document.getElementById('transactionsTable');
   const filter = document.getElementById('filterType')?.value || '';
-  const month = currentMonth();
-  let entries = entriesForMonth(month);
+  const month = currentMonth(); let entries = entriesForMonth(month);
   if (filter) entries = entries.filter(e => e.type === filter);
   entries.sort((a, b) => new Date(b.date) - new Date(a.date));
 
   if (entries.length === 0) { container.innerHTML = '<div class="empty"><p>Nenhum lançamento</p></div>'; return; }
-
   container.innerHTML = `<table class="transactions"><thead><tr><th>Data</th><th>Cat</th><th style="text-align:right">Valor</th><th></th></tr></thead><tbody>` + 
     entries.map(e => `<tr><td class="td-date">${new Date(e.date+'T12:00:00').toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'})}</td><td class="td-desc">${e.category}</td><td class="${e.type==='ganho'?'td-gain':'td-loss'}" style="text-align:right">${fmt(e.value)}</td><td><div class="td-actions"><button class="icon-btn" onclick="openModal('${e.id}')">✎</button><button class="icon-btn del" onclick="deleteEntry('${e.id}')">✕</button></div></td></tr>`).join('') + `</tbody></table>`;
 }
 
 function renderHistory() {
-  const months = allMonths();
-  const container = document.getElementById('historyMonths');
+  const months = allMonths(); const container = document.getElementById('historyMonths');
   container.innerHTML = months.map(m => {
     const entries = entriesForMonth(m);
     const g = entries.filter(e=>e.type==='ganho').reduce((s,e)=>s+e.value,0), d = entries.filter(e=>e.type==='despesa').reduce((s,e)=>s+e.value,0), bal = g - d;
@@ -620,7 +614,6 @@ function renderHistory() {
   const mths = months.slice(0,6).reverse();
   const balData = mths.map(m => { const ents = entriesForMonth(m); return ents.filter(e=>e.type==='ganho').reduce((s,e)=>s+e.value,0) - ents.filter(e=>e.type==='despesa').reduce((s,e)=>s+e.value,0); });
   const lbls = mths.map(m => { const [y,mo] = m.split('-'); return ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][parseInt(mo)-1]; });
-
   if (histChartInst) histChartInst.destroy();
   histChartInst = new Chart(document.getElementById('historyChart'), {
     type: 'line',
@@ -633,11 +626,9 @@ function setView(name) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.getElementById('view-' + name).classList.add('active');
   document.querySelectorAll('.nav-item, .mobile-nav-item').forEach(n => n.classList.remove('active'));
-  
-  if (name === 'dashboard') { document.getElementById('m-dash').classList.add('active'); }
-  if (name === 'transactions') { document.getElementById('m-trans').classList.add('active'); }
-  if (name === 'history') { document.getElementById('m-hist').classList.add('active'); }
-
+  if (name === 'dashboard') { document.getElementById('m-dash').classList.add('active'); document.getElementById('d-dash').classList.add('active'); }
+  if (name === 'transactions') { document.getElementById('m-trans').classList.add('active'); document.getElementById('d-trans').classList.add('active'); }
+  if (name === 'history') { document.getElementById('m-hist').classList.add('active'); document.getElementById('d-hist').classList.add('active'); }
   document.getElementById('viewTitle').textContent = { dashboard: 'Dashboard', transactions: 'Lançamentos', history: 'Histórico' }[name];
   if (name === 'history') renderHistory();
 }
@@ -647,22 +638,10 @@ function showToast(msg, type = '') {
   setTimeout(() => t.className = 'toast', 2500);
 }
 
-if ('serviceWorker' in navigator) {
-  const swCode = `
-    const cacheName = 'finpessoal-v1';
-    self.addEventListener('install', e => { e.waitUntil(caches.open(cacheName).then(cache => cache.addAll(['./', './index.html']))); });
-    self.addEventListener('fetch', e => { e.respondWith(caches.match(e.request).then(res => res || fetch(e.request))); });
-  `;
-  const blob = new Blob([swCode], { type: 'application/javascript' });
-  navigator.serviceWorker.register(URL.createObjectURL(blob));
-}
+// Escuta por mudanças de sessão em tempo real
+supabase.auth.onAuthStateChange((event, session) => { checkUserSession(); });
 
-window.addEventListener('DOMContentLoaded', async () => {
-  buildCatSelect();
-  await loadFromCloud();
-  buildMonthSelects();
-  refresh();
-});
+window.addEventListener('DOMContentLoaded', () => { checkUserSession(); });
 </script>
 </body>
 </html>
