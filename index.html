@@ -331,7 +331,7 @@
 <script>
 const SUPABASE_URL = "https://zqyaaukfcpetkwfoexyj.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_mAEjx6IglsaijdRvNfx6XQ_4S1Wn9aw";
-const supabase = createClient.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const sb = createClient.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 if(window.innerWidth <= 768) { document.getElementById('mobileMonthSelect').style.display = 'block'; }
 
@@ -361,11 +361,11 @@ async function handleAuth(e) {
   showLoading(true);
 
   if (isSignUpMode) {
-    const { data, error } = await supabase.auth.signUp({ email, password });
+    const { data, error } = await sb.auth.signUp({ email, password });
     if (error) { showToast(error.message, 'error'); } 
     else { showToast('Conta criada! Faça login agora.', 'success'); toggleAuthMode(); }
   } else {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await sb.auth.signInWithPassword({ email, password });
     if (error) { showToast('E-mail ou senha incorretos.', 'error'); } 
     else { checkUserSession(); }
   }
@@ -373,14 +373,14 @@ async function handleAuth(e) {
 }
 
 async function handleLogout() {
-  await supabase.auth.signOut();
+  await sb.auth.signOut();
   _USER = null; _ALL_ENTRIES = [];
   document.getElementById('app-interface').style.display = 'none';
   document.getElementById('auth-interface').style.display = 'flex';
 }
 
 async function checkUserSession() {
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { session } } = await sb.auth.getSession();
   if (session) {
     _USER = session.user;
     document.getElementById('auth-interface').style.display = 'none';
@@ -399,7 +399,7 @@ async function checkUserSession() {
 async function loadFromCloud() {
   if (!_USER) return;
   showLoading(true);
-  const { data, error } = await supabase.from('lancamentos').select('*');
+  const { data, error } = await sb.from('lancamentos').select('*');
   if (!error && data) {
     _ALL_ENTRIES = data.map(e => ({ ...e, value: parseFloat(e.value) }));
   }
@@ -422,10 +422,10 @@ async function saveEntry() {
 
   let error;
   if (editId) {
-    const { error: err } = await supabase.from('lancamentos').update(payload).eq('id', editId);
+    const { error: err } = await sb.from('lancamentos').update(payload).eq('id', editId);
     error = err;
   } else {
-    const { error: err } = await supabase.from('lancamentos').insert([payload]);
+    const { error: err } = await sb.from('lancamentos').insert([payload]);
     error = err;
   }
 
@@ -443,7 +443,7 @@ async function saveEntry() {
 async function deleteEntry(id) {
   if (!confirm('Deseja deletar este lançamento permanentemente?')) return;
   showLoading(true);
-  const { error } = await supabase.from('lancamentos').delete().eq('id', id);
+  const { error } = await sb.from('lancamentos').delete().eq('id', id);
   if (!error) {
     showToast('Lançamento removido', 'success');
     await loadFromCloud();
@@ -632,7 +632,7 @@ function showToast(msg, type = '') {
   setTimeout(() => t.className = 'toast', 2500);
 }
 
-supabase.auth.onAuthStateChange((event, session) => { checkUserSession(); });
+sb.auth.onAuthStateChange((event, session) => { checkUserSession(); });
 window.addEventListener('DOMContentLoaded', () => { checkUserSession(); });
 </script>
 </body>
