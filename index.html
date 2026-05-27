@@ -175,116 +175,114 @@
         <label>Senha</label>
         <input type="password" id="authPassword" required placeholder="••••••••" minlength="6"/>
       </div>
-      <button type="submit" class="btn btn-primary" id="authSubmitBtn" style="padding:11px; font-weight:500;">Entrar</button>
+      <button type="submit" class="btn btn-primary" id="authSubmitBtn" style="padding:11px; font-weight:500; width:100%; justify-content:center;">Entrar</button>
     </form>
     <span class="auth-toggle" id="authToggleLink" onclick="toggleAuthMode()">Não tem conta? Cadastre-se</span>
   </div>
 </div>
 
-<div id="app-interface">
-  <div class="app-layout">
-    <aside class="sidebar">
-      <div class="logo">
-        <div class="logo-mark">fin<span>.</span>pessoal</div>
-        <div class="logo-sub">banco de dados em nuvem</div>
+<div id="app-interface" class="app-layout">
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-mark">fin<span>.</span>pessoal</div>
+      <div class="logo-sub">banco de dados em nuvem</div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Navegação</div>
+      <div class="nav-item active" id="d-dash" onclick="setView('dashboard')">◈ Dashboard</div>
+      <div class="nav-item" id="d-trans" onclick="setView('transactions')">≡ Lançamentos</div>
+      <div class="nav-item" id="d-hist" onclick="setView('history')">◷ Histórico</div>
+    </div>
+    <div class="sidebar-footer">
+      <div class="select-wrap">
+        <label>Mês de Referência</label>
+        <select id="monthSelect" onchange="onMonthChange()"></select>
       </div>
-      <div class="nav-section">
-        <div class="nav-label">Navegação</div>
-        <div class="nav-item active" id="d-dash" onclick="setView('dashboard')">◈ Dashboard</div>
-        <div class="nav-item" id="d-trans" onclick="setView('transactions')">≡ Lançamentos</div>
-        <div class="nav-item" id="d-hist" onclick="setView('history')">◷ Histórico</div>
-      </div>
-      <div class="sidebar-footer">
-        <div class="select-wrap">
-          <label>Mês de Referência</label>
-          <select id="monthSelect" onchange="onMonthChange()"></select>
+      <div class="user-badge" id="userBadgeEmail">carregando...</div>
+      <button class="btn btn-ghost" onclick="handleLogout()" style="padding:6px; font-size:11px;">✕ Sair do App</button>
+    </div>
+  </aside>
+
+  <nav class="mobile-nav">
+    <div class="mobile-nav-item active" id="m-dash" onclick="setView('dashboard')">◈<br>Dash</div>
+    <div class="mobile-nav-item" id="m-trans" onclick="setView('transactions')">≡<br>Lista</div>
+    <div class="mobile-nav-item" id="m-hist" onclick="setView('history')">◷<br>Histórico</div>
+    <div class="mobile-nav-item" onclick="handleLogout()" style="color:var(--loss)">✕<br>Sair</div>
+  </nav>
+
+  <header class="topbar">
+    <div style="display:flex; flex-direction:column; gap:2px;">
+      <div class="topbar-title" id="viewTitle">Dashboard</div>
+      <span class="loading-indicator" id="loadingIndicator">☁ Sincronizando...</span>
+    </div>
+    <div style="display:flex; gap:8px; align-items:center;">
+      <select id="mobileMonthSelect" onchange="onMobileMonthChange()" style="display:none; width:110px; padding:5px; font-size:12px;"></select>
+      <button class="btn btn-primary" onclick="openModal()" style="width:auto;">＋ Novo</button>
+    </div>
+  </header>
+
+  <main class="content">
+    <div id="view-dashboard" class="view active">
+      <div class="summary-cards">
+        <div class="scard gain">
+          <div class="scard-label">Total Ganhos</div>
+          <div class="scard-value" id="totalGain">R$ 0,00</div>
+          <div class="scard-sub" id="gainSub">—</div>
         </div>
-        <div class="user-badge" id="userBadgeEmail">carregando...</div>
-        <button class="btn btn-ghost" onclick="handleLogout()" style="padding:6px; font-size:11px;">✕ Sair do App</button>
-      </div>
-    </aside>
-
-    <nav class="mobile-nav">
-      <div class="mobile-nav-item active" id="m-dash" onclick="setView('dashboard')">◈<br>Dash</div>
-      <div class="mobile-nav-item" id="m-trans" onclick="setView('transactions')">≡<br>Lista</div>
-      <div class="mobile-nav-item" id="m-hist" onclick="setView('history')">◷<br>Histórico</div>
-      <div class="mobile-nav-item" onclick="handleLogout()" style="color:var(--loss)">✕<br>Sair</div>
-    </nav>
-
-    <header class="topbar">
-      <div style="display:flex; flex-direction:column; gap:2px;">
-        <div class="topbar-title" id="viewTitle">Dashboard</div>
-        <span class="loading-indicator" id="loadingIndicator">☁ Sincronizando...</span>
-      </div>
-      <div style="display:flex; gap:8px; align-items:center;">
-        <select id="mobileMonthSelect" onchange="onMobileMonthChange()" style="display:none; width:110px; padding:5px; font-size:12px;"></select>
-        <button class="btn btn-primary" onclick="openModal()" style="width:auto;">＋ Novo</button>
-      </div>
-    </header>
-
-    <main class="content">
-      <div id="view-dashboard" class="view active">
-        <div class="summary-cards">
-          <div class="scard gain">
-            <div class="scard-label">Total Ganhos</div>
-            <div class="scard-value" id="totalGain">R$ 0,00</div>
-            <div class="scard-sub" id="gainSub">—</div>
-          </div>
-          <div class="scard loss">
-            <div class="scard-label">Total Despesas</div>
-            <div class="scard-value" id="totalLoss">R$ 0,00</div>
-            <div class="scard-sub" id="lossSub">—</div>
-          </div>
-          <div class="scard bal">
-            <div class="scard-label">Saldo do Mês</div>
-            <div class="scard-value" id="totalBalance">R$ 0,00</div>
-            <div class="scard-sub" id="balSub">—</div>
-          </div>
+        <div class="scard loss">
+          <div class="scard-label">Total Despesas</div>
+          <div class="scard-value" id="totalLoss">R$ 0,00</div>
+          <div class="scard-sub" id="lossSub">—</div>
         </div>
-
-        <div class="main-grid">
-          <div class="panel">
-            <div class="panel-header"><div class="panel-title"><span class="dot" style="background:var(--gain)"></span> Ganhos</div></div>
-            <div id="gainBreakdown"></div>
-          </div>
-          <div class="panel">
-            <div class="panel-header"><div class="panel-title"><span class="dot" style="background:var(--loss)"></span> Despesas</div></div>
-            <div id="lossBreakdown"></div>
-          </div>
-          <div class="panel">
-            <div class="panel-header"><div class="panel-title"><span class="dot" style="background:var(--blue)"></span> Distribuição</div></div>
-            <div class="chart-wrap"><canvas id="pieChart"></canvas></div>
-          </div>
-          <div class="panel">
-            <div class="panel-header"><div class="panel-title"><span class="dot" style="background:var(--amber)"></span> Comparativo</div></div>
-            <div class="chart-wrap"><canvas id="barChart"></canvas></div>
-          </div>
+        <div class="scard bal">
+          <div class="scard-label">Saldo do Mês</div>
+          <div class="scard-value" id="totalBalance">R$ 0,00</div>
+          <div class="scard-sub" id="balSub">—</div>
         </div>
       </div>
 
-      <div id="view-transactions" class="view">
+      <div class="main-grid">
         <div class="panel">
-          <div class="panel-header">
-            <div class="panel-title">Todos os lançamentos</div>
-            <select class="form-select" id="filterType" onchange="renderTransactions()" style="width:110px;">
-              <option value="">Todos</option>
-              <option value="ganho">Ganhos</option>
-              <option value="despesa">Despesas</option>
-            </select>
-          </div>
-          <div id="transactionsTable"></div>
+          <div class="panel-header"><div class="panel-title"><span class="dot" style="background:var(--gain)"></span> Ganhos</div></div>
+          <div id="gainBreakdown"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><div class="panel-title"><span class="dot" style="background:var(--loss)"></span> Despesas</div></div>
+          <div id="lossBreakdown"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><div class="panel-title"><span class="dot" style="background:var(--blue)"></span> Distribuição</div></div>
+          <div class="chart-wrap"><canvas id="pieChart"></canvas></div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><div class="panel-title"><span class="dot" style="background:var(--amber)"></span> Comparativo</div></div>
+          <div class="chart-wrap"><canvas id="barChart"></canvas></div>
         </div>
       </div>
+    </div>
 
-      <div id="view-history" class="view">
-        <div class="panel" style="margin-bottom:20px">
-          <div class="panel-header"><div class="panel-title">Evolução de Saldo</div></div>
-          <div class="chart-wrap" style="height:240px"><canvas id="historyChart"></canvas></div>
+    <div id="view-transactions" class="view">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">Todos os lançamentos</div>
+          <select class="form-select" id="filterType" onchange="renderTransactions()" style="width:110px;">
+            <option value="">Todos</option>
+            <option value="ganho">Ganhos</option>
+            <option value="despesa">Despesas</option>
+          </select>
         </div>
-        <div class="history-months" id="historyMonths"></div>
+        <div id="transactionsTable"></div>
       </div>
-    </main>
-  </div>
+    </div>
+
+    <div id="view-history" class="view">
+      <div class="panel" style="margin-bottom:20px">
+        <div class="panel-header"><div class="panel-title">Evolução de Saldo</div></div>
+        <div class="chart-wrap" style="height:240px"><canvas id="historyChart"></canvas></div>
+      </div>
+      <div class="history-months" id="historyMonths"></div>
+    </div>
+  </main>
 </div>
 
 <div class="modal-overlay" id="modal" onclick="closeModalOnOverlay(event)">
@@ -331,7 +329,6 @@
 <div class="toast" id="toast"></div>
 
 <script>
-// CONFIGURAÇÃO DO SEU SUPABASE INTEGRADO
 const SUPABASE_URL = "https://zqyaaukfcpetkwfoexyj.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_mAEjx6IglsaijdRvNfx6XQ_4S1Wn9aw";
 const supabase = createClient.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -350,7 +347,6 @@ let _ALL_ENTRIES = [], _USER = null;
 
 function showLoading(show) { document.getElementById('loadingIndicator').style.display = show ? 'inline' : 'none'; }
 
-// ── SISTEMA DE AUTENTICAÇÃO REAL ──
 function toggleAuthMode() {
   isSignUpMode = !isSignUpMode;
   document.getElementById('auth-title-mode').textContent = isSignUpMode ? 'Crie sua nova conta' : 'Faça login para gerenciar';
@@ -388,7 +384,7 @@ async function checkUserSession() {
   if (session) {
     _USER = session.user;
     document.getElementById('auth-interface').style.display = 'none';
-    document.getElementById('app-interface').style.display = 'block';
+    document.getElementById('app-interface').style.display = 'grid'; // Corrigido para grid
     document.getElementById('userBadgeEmail').textContent = _USER.email;
     buildCatSelect();
     await loadFromCloud();
@@ -400,7 +396,6 @@ async function checkUserSession() {
   }
 }
 
-// ── QUERIES DO BANCO DE DADOS (SUPABASE) ──
 async function loadFromCloud() {
   if (!_USER) return;
   showLoading(true);
@@ -457,7 +452,6 @@ async function deleteEntry(id) {
   }
 }
 
-// ── REGRAS DE LAYOUT E RENDER ──
 function currentMonth() {
   if(window.innerWidth <= 768) { return document.getElementById('mobileMonthSelect').value || getMonthKey(new Date()); }
   return document.getElementById('monthSelect').value || getMonthKey(new Date());
@@ -638,9 +632,7 @@ function showToast(msg, type = '') {
   setTimeout(() => t.className = 'toast', 2500);
 }
 
-// Escuta por mudanças de sessão em tempo real
 supabase.auth.onAuthStateChange((event, session) => { checkUserSession(); });
-
 window.addEventListener('DOMContentLoaded', () => { checkUserSession(); });
 </script>
 </body>
