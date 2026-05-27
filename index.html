@@ -331,7 +331,7 @@
 <script>
 const SUPABASE_URL = "https://zqyaaukfcpetkwfoexyj.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_mAEjx6IglsaijdRvNfx6XQ_4S1Wn9aw";
-const sb = createClient.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 if(window.innerWidth <= 768) { document.getElementById('mobileMonthSelect').style.display = 'block'; }
 
