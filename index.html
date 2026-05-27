@@ -7,6 +7,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0c0c0e">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/2489/2489756.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
@@ -52,10 +54,10 @@
   .nav-item:hover { background: var(--surface2); color: var(--text); }
   .nav-item.active { background: var(--surface2); color: var(--text); }
   .nav-item.active::before { content:''; position:absolute; left:0; top:50%; transform:translateY(-50%); width:3px; height:18px; background:var(--gain); border-radius:0 3px 3px 0; }
-  .nav-icon { font-size: 16px; width: 20px; text-align: center; }
-  .sidebar-footer { margin-top: auto; padding: 16px 20px 0; border-top: 1px solid var(--border); }
-  .month-select-wrap { position: relative; }
-  .month-select-wrap label { font-size: 11px; color: var(--muted); display: block; margin-bottom: 4px; }
+  
+  .sidebar-footer { margin-top: auto; padding: 16px 20px 0; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 12px; }
+  .select-wrap { position: relative; }
+  .select-wrap label { font-size: 11px; color: var(--muted); display: block; margin-bottom: 4px; }
   select { width: 100%; background: var(--surface2); border: 1px solid var(--border2); color: var(--text); padding: 8px 10px; border-radius: var(--radius-sm); font-family: var(--font); font-size: 13px; cursor: pointer; appearance: none; }
   select:focus { outline: none; border-color: var(--gain); }
 
@@ -66,6 +68,7 @@
   .btn-primary:hover { background: #5ddf96; }
   .btn-ghost { background: var(--surface2); color: var(--text); border: 1px solid var(--border2); }
   .btn-ghost:hover { background: #242427; }
+  .loading-indicator { font-size: 12px; color: var(--amber); display: none; font-family: var(--mono); }
 
   /* ── SUMMARY CARDS ── */
   .summary-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 24px; }
@@ -104,9 +107,6 @@
   .transactions th { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.7px; padding: 0 12px 10px; text-align: left; font-weight: 400; }
   .transactions td { padding: 11px 12px; border-bottom: 1px solid var(--border); font-size: 13px; }
   .transactions tr:last-child td { border-bottom: none; }
-  .badge { display: inline-block; padding: 3px 8px; border-radius: 20px; font-size: 11px; }
-  .badge-gain { background: var(--gain-dim); color: var(--gain); }
-  .badge-loss { background: var(--loss-dim); color: var(--loss); }
   .td-gain { font-family: var(--mono); color: var(--gain); }
   .td-loss { font-family: var(--mono); color: var(--loss); }
   .td-date { color: var(--muted); font-family: var(--mono); font-size: 12px; }
@@ -165,16 +165,23 @@
   <aside class="sidebar">
     <div class="logo">
       <div class="logo-mark">fin<span>.</span>pessoal</div>
-      <div class="logo-sub">controle financeiro</div>
+      <div class="logo-sub">controle em nuvem</div>
     </div>
     <div class="nav-section">
       <div class="nav-label">Navegação</div>
-      <div class="nav-item active" onclick="setView('dashboard')"><span class="nav-icon">◈</span> Dashboard</div>
-      <div class="nav-item" onclick="setView('transactions')"><span class="nav-icon">≡</span> Lançamentos</div>
-      <div class="nav-item" onclick="setView('history')"><span class="nav-icon">◷</span> Histórico</div>
+      <div class="nav-item active" onclick="setView('dashboard')">◈ Dashboard</div>
+      <div class="nav-item" onclick="setView('transactions')">≡ Lançamentos</div>
+      <div class="nav-item" onclick="setView('history')">◷ Histórico</div>
     </div>
     <div class="sidebar-footer">
-      <div class="month-select-wrap">
+      <div class="select-wrap">
+        <label>Usuário</label>
+        <select id="userSelect" onchange="onUserChange()">
+          <option value="Joao">João</option>
+          <option value="Mae">Mãe</option>
+        </select>
+      </div>
+      <div class="select-wrap">
         <label>Visualizando</label>
         <select id="monthSelect" onchange="onMonthChange()"></select>
       </div>
@@ -189,9 +196,16 @@
   </nav>
 
   <header class="topbar">
-    <div class="topbar-title" id="viewTitle">Dashboard</div>
+    <div style="display:flex; flex-direction:column; gap:2px;">
+      <div class="topbar-title" id="viewTitle">Dashboard</div>
+      <span class="loading-indicator" id="loadingIndicator">☁ Sincronizando...</span>
+    </div>
     <div style="display:flex; gap:8px; align-items:center;">
-      <select id="mobileMonthSelect" onchange="onMobileMonthChange()" style="display:none; width:110px; padding:5px; font-size:12px;"></select>
+      <select id="mobileUserSelect" onchange="onMobileUserChange()" style="display:none; width:80px; padding:5px; font-size:12px;">
+        <option value="Joao">João</option>
+        <option value="Mae">Mãe</option>
+      </select>
+      <select id="mobileMonthSelect" onchange="onMobileMonthChange()" style="display:none; width:95px; padding:5px; font-size:12px;"></select>
       <button class="btn btn-primary" onclick="openModal()">＋ Novo</button>
     </div>
   </header>
@@ -304,7 +318,13 @@
 <div class="toast" id="toast"></div>
 
 <script>
-if(window.innerWidth <= 768) { document.getElementById('mobileMonthSelect').style.display = 'block'; }
+// LINK DA SUA PONTE DO GOOGLE SHEETS
+const CLOUD_URL = "https://script.google.com/macros/s/AKfycbx4XC1D_53WMhBgxZzQuv2Q3gFOteFZ5nd3vWpqEOeqywXWMKUL05lXsRYWL6omkTH-Rg/exec";
+
+if(window.innerWidth <= 768) { 
+  document.getElementById('mobileMonthSelect').style.display = 'block'; 
+  document.getElementById('mobileUserSelect').style.display = 'block'; 
+}
 
 const SCHEMA = {
   ganho: { 'Salário': [], 'Investimento': ['Renda Fixa', 'Ações', 'FIIs', 'Cripto', 'Outros'], 'Outros': [] },
@@ -313,40 +333,70 @@ const SCHEMA = {
 const LOSS_COLORS = ['#ff6b6b','#ff9b54','#f5a623','#a78bfa','#5b8fff','#3ecf7c','#67e8f9','#f472b6'];
 
 let currentType = 'ganho', editId = null, pieChartInst = null, barChartInst = null, histChartInst = null;
-let _DB = null, _CACHED_ENTRIES = [];
+let _ALL_ENTRIES = [];
 
-// Banco de dados blindado no Celular (IndexedDB)
-function initDB() {
-  return new Promise((resolve) => {
-    let req = indexedDB.open("FinPessoalDB", 1);
-    req.onupgradeneeded = (e) => { e.target.result.createObjectStore("entries", { keyPath: "id" }); };
-    req.onsuccess = (e) => { _DB = e.target.result; resolve(); };
-  });
+function showLoading(show) {
+  document.getElementById('loadingIndicator').style.display = show ? 'inline' : 'none';
 }
 
-function loadFromDB() {
-  return new Promise((resolve) => {
-    let tx = _DB.transaction("entries", "readonly");
-    let store = tx.objectStore("entries");
-    let req = store.getAll();
-    req.onsuccess = () => { _CACHED_ENTRIES = req.result; resolve(); };
-  });
+// CONEXÃO DE LEITURA NA NUVEM
+async function loadFromCloud() {
+  showLoading(true);
+  try {
+    let res = await fetch(CLOUD_URL, {
+      method: "POST",
+      mode: "cors",
+      body: JSON.stringify({ action: "read" })
+    });
+    let result = await res.json();
+    if (result.status === "success") {
+      _ALL_ENTRIES = result.data.map(e => ({
+        ...e,
+        value: parseFloat(e.value)
+      }));
+    }
+  } catch (err) {
+    showToast("Erro ao carregar dados da nuvem", "error");
+    console.error(err);
+  }
+  showLoading(false);
 }
 
-function writeToDB(entry) {
-  return new Promise((resolve) => {
-    let tx = _DB.transaction("entries", "readwrite");
-    tx.objectStore("entries").put(entry);
-    tx.oncomplete = () => resolve();
-  });
+// CONEXÃO DE ESCRITA NA NUVEM
+async function writeToCloud(entry) {
+  showLoading(true);
+  try {
+    await fetch(CLOUD_URL, {
+      method: "POST",
+      mode: "cors",
+      body: JSON.stringify({ action: "save", data: entry })
+    });
+  } catch (err) {
+    showToast("Erro ao salvar dados na nuvem", "error");
+    console.error(err);
+  }
+  showLoading(false);
 }
 
-function deleteFromDB(id) {
-  return new Promise((resolve) => {
-    let tx = _DB.transaction("entries", "readwrite");
-    tx.objectStore("entries").delete(id);
-    tx.oncomplete = () => resolve();
-  });
+// CONEXÃO DE EXCLUSÃO NA NUVEM
+async function deleteFromCloud(id) {
+  showLoading(true);
+  try {
+    await fetch(CLOUD_URL, {
+      method: "POST",
+      mode: "cors",
+      body: JSON.stringify({ action: "delete", id: id })
+    });
+  } catch (err) {
+    showToast("Erro ao deletar da nuvem", "error");
+    console.error(err);
+  }
+  showLoading(false);
+}
+
+function currentUser() {
+  if(window.innerWidth <= 768) { return document.getElementById('mobileUserSelect').value; }
+  return document.getElementById('userSelect').value;
 }
 
 function currentMonth() {
@@ -354,8 +404,8 @@ function currentMonth() {
   return document.getElementById('monthSelect').value || getMonthKey(new Date());
 }
 
-function getMonthKey(date) {
-  const d = typeof date === 'string' ? new Date(date + 'T12:00:00') : date;
+function getMonthKey(dateStr) {
+  const d = new Date(dateStr + 'T12:00:00');
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
 }
 
@@ -364,17 +414,22 @@ function monthLabel(key) {
   return `${['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'][parseInt(m)-1]} ${y}`;
 }
 
-function entriesForMonth(month) { return _CACHED_ENTRIES.filter(e => getMonthKey(e.date) === month); }
+// FILTRA AS ENTRADAS POR USUÁRIO E POR MÊS
+function entriesForMonth(month) { 
+  return _ALL_ENTRIES.filter(e => e.user === currentUser() && getMonthKey(e.date) === month); 
+}
+
 function allMonths() {
-  const keys = new Set(_CACHED_ENTRIES.map(e => getMonthKey(e.date)));
-  keys.add(getMonthKey(new Date()));
+  const userEntries = _ALL_ENTRIES.filter(e => e.user === currentUser());
+  const keys = new Set(userEntries.map(e => getMonthKey(e.date)));
+  keys.add(getMonthKey(new Date().toISOString().split('T')[0]));
   return [...keys].sort().reverse();
 }
 
 function buildMonthSelects() {
   const selDesktop = document.getElementById('monthSelect');
   const selMobile = document.getElementById('mobileMonthSelect');
-  const current = selDesktop.value || selMobile.value || getMonthKey(new Date());
+  const current = selDesktop.value || selMobile.value || getMonthKey(new Date().toISOString().split('T')[0]);
   
   selDesktop.innerHTML = ''; selMobile.innerHTML = '';
   allMonths().forEach(m => {
@@ -388,6 +443,8 @@ function buildMonthSelects() {
 
 function onMonthChange() { document.getElementById('mobileMonthSelect').value = document.getElementById('monthSelect').value; refresh(); }
 function onMobileMonthChange() { document.getElementById('monthSelect').value = document.getElementById('mobileMonthSelect').value; refresh(); }
+function onUserChange() { document.getElementById('mobileUserSelect').value = document.getElementById('userSelect').value; buildMonthSelects(); refresh(); }
+function onMobileUserChange() { document.getElementById('userSelect').value = document.getElementById('mobileUserSelect').value; buildMonthSelects(); refresh(); }
 
 function openModal(id = null) {
   editId = id;
@@ -395,7 +452,7 @@ function openModal(id = null) {
   document.getElementById('saveBtn').textContent = id ? 'Atualizar' : 'Salvar';
 
   if (id) {
-    const entry = _CACHED_ENTRIES.find(e => e.id === id);
+    const entry = _ALL_ENTRIES.find(e => e.id.toString() === id.toString());
     if (entry) {
       setType(entry.type);
       setTimeout(() => {
@@ -404,7 +461,7 @@ function openModal(id = null) {
         setTimeout(() => { if (entry.subcategory) document.getElementById('subcatSelect').value = entry.subcategory; }, 10);
       }, 10);
       document.getElementById('valueInput').value = entry.value;
-      document.getElementById('dateInput').value = entry.date;
+      document.getElementById('dateInput').value = entry.date.split('T')[0];
       document.getElementById('descInput').value = entry.desc || '';
     }
   } else {
@@ -438,20 +495,30 @@ async function saveEntry() {
   if (!value || value <= 0) { showToast('Informe um valor válido', 'error'); return; }
   if (!date) { showToast('Informe a data', 'error'); return; }
 
-  let entry = { id: editId || Date.now().toString(), type: currentType, category: cat, subcategory: subcat, value, date, desc };
-  await writeToDB(entry);
-  showToast(editId ? 'Atualizado ✓' : 'Salvo ✓', 'success');
+  let entry = { 
+    id: editId || Date.now().toString(), 
+    user: currentUser(),
+    type: currentType, 
+    category: cat, 
+    subcategory: subcat, 
+    value, 
+    date, 
+    desc 
+  };
   
   closeModal();
-  await loadFromDB();
+  await writeToCloud(entry);
+  showToast(editId ? 'Atualizado na nuvem ✓' : 'Salvo na nuvem ✓', 'success');
+  
+  await loadFromCloud();
   buildMonthSelects();
   refresh();
 }
 
 async function deleteEntry(id) {
-  if (!confirm('Excluir este lançamento?')) return;
-  await deleteFromDB(id);
-  await loadFromDB();
+  if (!confirm('Excluir este lançamento na nuvem?')) return;
+  await deleteFromCloud(id);
+  await loadFromCloud();
   buildMonthSelects();
   refresh();
   showToast('Lançamento removido', 'error');
@@ -565,10 +632,8 @@ function renderHistory() {
 function setView(name) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.getElementById('view-' + name).classList.add('active');
-  
   document.querySelectorAll('.nav-item, .mobile-nav-item').forEach(n => n.classList.remove('active'));
   
-  // Sincroniza os menus ativos (Mobile e Desktop)
   if (name === 'dashboard') { document.getElementById('m-dash').classList.add('active'); }
   if (name === 'transactions') { document.getElementById('m-trans').classList.add('active'); }
   if (name === 'history') { document.getElementById('m-hist').classList.add('active'); }
@@ -582,7 +647,6 @@ function showToast(msg, type = '') {
   setTimeout(() => t.className = 'toast', 2500);
 }
 
-// Registro automático do Service Worker PWA
 if ('serviceWorker' in navigator) {
   const swCode = `
     const cacheName = 'finpessoal-v1';
@@ -594,9 +658,8 @@ if ('serviceWorker' in navigator) {
 }
 
 window.addEventListener('DOMContentLoaded', async () => {
-  await initDB();
-  await loadFromDB();
   buildCatSelect();
+  await loadFromCloud();
   buildMonthSelects();
   refresh();
 });
