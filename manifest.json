@@ -1,0 +1,15 @@
+{
+  "name": "Finanças Pessoais FP",
+  "short_name": "Finanças FP",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0c0c0e",
+  "theme_color": "#0c0c0e",
+  "icons": [
+    {
+      "src": "FP.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
