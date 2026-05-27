@@ -46,7 +46,7 @@
   .auth-toggle:hover { color: var(--text); }
 
   /* LAYOUT */
-  #app-interface { display: none; }
+  #app-interface { display: none !important; }
   .app-layout { display: grid; grid-template-columns: 220px 1fr; grid-template-rows: auto 1fr; min-height: 100vh; }
   .sidebar { grid-row: 1 / 3; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 28px 0 20px; }
   .topbar { border-bottom: 1px solid var(--border); padding: 0 28px; height: 60px; display: flex; align-items: center; justify-content: space-between; background: var(--bg); position: sticky; top: 0; z-index: 10; }
@@ -129,8 +129,12 @@
   .type-btn.active-gain { background: var(--gain-dim); border-color: rgba(62,207,124,0.3); color: var(--gain); }
   .type-btn.active-loss { background: var(--loss-dim); border-color: rgba(255,107,107,0.3); color: var(--loss); }
   .empty { text-align: center; padding: 40px 20px; color: var(--muted); }
-  .toast { position: fixed; bottom: 84px; right: 24px; background: var(--surface2); border: 1px solid var(--border2); color: var(--text); padding: 12px 18px; border-radius: var(--radius-sm); font-size: 13px; z-index: 200; transform: translateY(60px); opacity: 0; transition: all 0.25s; }
-  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast { position: fixed; bottom: 90px; right: 20px; left: 20px; max-width: 360px; margin: 0 auto; background: var(--surface2); border: 1px solid var(--border2); color: var(--text); padding: 13px 18px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; z-index: 9999; transform: translateY(20px); opacity: 0; pointer-events: none; transition: transform 0.25s ease, opacity 0.25s ease; display: flex; align-items: center; gap: 10px; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
+  .toast.show { transform: translateY(0); opacity: 1; pointer-events: all; }
+  .toast.error { background: #1f0f0f; border-color: rgba(255,107,107,0.4); color: #ff8f8f; }
+  .toast.success { background: #0b1a12; border-color: rgba(62,207,124,0.35); color: #5ddf96; }
+  .toast-icon { font-size: 16px; flex-shrink: 0; }
+  @media (min-width: 480px) { .toast { left: auto; right: 24px; bottom: 84px; margin: 0; } }
   .view { display: none; }
   .view.active { display: block; }
   .history-months { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
@@ -768,9 +772,11 @@ function renderBreakdown(containerId, entries, total, color) {
 function renderPieChart(losses) {
   const byCat = {}; losses.forEach(e => { byCat[e.category] = (byCat[e.category] || 0) + e.value; });
   const labels = Object.keys(byCat), values = labels.map(l => byCat[l]);
-  if (pieChartInst) pieChartInst.destroy();
+  if (pieChartInst) { pieChartInst.destroy(); pieChartInst = null; }
   const ctx = document.getElementById('pieChart');
   if (labels.length === 0) { ctx.style.display='none'; return; } else { ctx.style.display=''; }
+  // Reset canvas dimensions to avoid Chart.js sizing artifacts
+  ctx.style.width = ''; ctx.style.height = '';
   pieChartInst = new Chart(ctx, {
     type: 'doughnut',
     data: { labels, datasets: [{ data: values, backgroundColor: LOSS_COLORS.slice(0, labels.length), borderWidth: 0 }] },
@@ -783,8 +789,10 @@ function renderBarChart(month) {
   const gainData = months.map(m => entriesForMonth(m).filter(e=>e.type==='ganho').reduce((s,e)=>s+e.value,0));
   const lossData = months.map(m => entriesForMonth(m).filter(e=>e.type==='despesa').reduce((s,e)=>s+e.value,0));
   const labels = months.map(m => { const[y,mo]=m.split('-'); return ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][parseInt(mo)-1]; });
-  if (barChartInst) barChartInst.destroy();
-  barChartInst = new Chart(document.getElementById('barChart'), {
+  if (barChartInst) { barChartInst.destroy(); barChartInst = null; }
+  const barCanvas = document.getElementById('barChart');
+  barCanvas.style.width = ''; barCanvas.style.height = '';
+  barChartInst = new Chart(barCanvas, {
     type:'bar',
     data:{ labels, datasets:[{ label:'Ganho', data:gainData, backgroundColor:'rgba(62,207,124,0.5)', borderRadius:4 },{ label:'Gasto', data:lossData, backgroundColor:'rgba(255,107,107,0.4)', borderRadius:4 }] },
     options:{ responsive:true, maintainAspectRatio:false }
@@ -813,8 +821,10 @@ function renderHistory() {
   const mths = months.slice(0,6).reverse();
   const balData = mths.map(m => { const ents = entriesForMonth(m); return ents.filter(e=>e.type==='ganho').reduce((s,e)=>s+e.value,0) - ents.filter(e=>e.type==='despesa').reduce((s,e)=>s+e.value,0); });
   const lbls = mths.map(m => { const[y,mo]=m.split('-'); return ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][parseInt(mo)-1]; });
-  if (histChartInst) histChartInst.destroy();
-  histChartInst = new Chart(document.getElementById('historyChart'), {
+  if (histChartInst) { histChartInst.destroy(); histChartInst = null; }
+  const histCanvas = document.getElementById('historyChart');
+  histCanvas.style.width = ''; histCanvas.style.height = '';
+  histChartInst = new Chart(histCanvas, {
     type:'line',
     data:{ labels:lbls, datasets:[{ data:balData, borderColor:'#5b8fff', backgroundColor:'rgba(91,143,255,0.08)', fill:true, tension:0.2 }] },
     options:{ responsive:true, maintainAspectRatio:false }
@@ -838,9 +848,16 @@ function setView(name) {
 }
 
 // ── TOAST ──────────────────────────────────────────────────────────────────
+let _toastTimer = null;
 function showToast(msg, type = '') {
-  const t = document.getElementById('toast'); t.textContent = msg; t.className = 'toast ' + type + ' show';
-  setTimeout(() => t.className = 'toast', 2500);
+  const t = document.getElementById('toast');
+  const icon = type === 'error' ? '✕' : type === 'success' ? '✓' : 'ℹ';
+  t.innerHTML = '<span class="toast-icon">' + icon + '</span><span>' + msg + '</span>';
+  t.className = 'toast ' + type;
+  void t.offsetWidth;
+  t.classList.add('show');
+  if (_toastTimer) clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => { t.classList.remove('show'); }, 3000);
 }
 
 // ── INIT ───────────────────────────────────────────────────────────────────
