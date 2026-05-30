@@ -821,19 +821,26 @@ async function handleLogout() {
 }
 
 // ── SESSION ───────────────────────────────────────────────────────────────
+let _sessionLoading = false;
 async function checkSession() {
-  const { data: { session } } = await sb.auth.getSession();
-  if (session) {
-    _USER = session.user;
-    document.getElementById('auth-interface').style.display = 'none';
-    document.getElementById('app-interface').style.display = 'block';
-    document.getElementById('userBadgeEmail').textContent = _USER.email;
-    await loadAll();
-    buildMonthSelects();
-    refresh();
-  } else {
-    document.getElementById('app-interface').style.display = 'none';
-    document.getElementById('auth-interface').style.display = 'flex';
+  if (_sessionLoading) return;
+  _sessionLoading = true;
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) {
+      _USER = session.user;
+      document.getElementById('auth-interface').style.display = 'none';
+      document.getElementById('app-interface').style.display = 'grid';
+      document.getElementById('userBadgeEmail').textContent = _USER.email;
+      await loadAll();
+      buildMonthSelects();
+      refresh();
+    } else {
+      document.getElementById('app-interface').style.display = 'none';
+      document.getElementById('auth-interface').style.display = 'flex';
+    }
+  } finally {
+    _sessionLoading = false;
   }
 }
 
@@ -1414,7 +1421,7 @@ function showToast(msg, type='') {
 }
 
 // ── INIT ──────────────────────────────────────────────────────────────────
-sb.auth.onAuthStateChange(() => checkSession());
+sb.auth.onAuthStateChange((event) => { if (event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "TOKEN_REFRESHED") checkSession(); });
 window.addEventListener('DOMContentLoaded', () => checkSession());
 </script>
 </body>
