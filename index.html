@@ -848,19 +848,26 @@ async function checkSession() {
 async function loadAll() {
   if (!_USER) return;
   showLoading(true);
-  // Lançamentos
-  const { data: entries } = await sb.from('lancamentos').select('*').order('date', { ascending: false });
-  if (entries) _ALL = entries.map(e => ({ ...e, value: parseFloat(e.value) }));
-  // Contas
-  const { data: accs } = await sb.from('contas').select('*').order('created_at');
-  if (accs) _ACCS = accs.map(a => ({ ...a, saldo_inicial: parseFloat(a.saldo_inicial || 0) }));
-  // Schema
-  const { data: settings } = await sb.from('user_settings').select('*').eq('user_id', _USER.id).single();
-  if (settings && settings.schema) {
-    _SCHEMA = mergeDefaults(JSON.parse(settings.schema));
-  } else {
-    _SCHEMA = JSON.parse(JSON.stringify(DEFAULT_SCHEMA));
-    await saveSchema();
+  try {
+    const { data: entries, error: e1 } = await sb.from('lancamentos').select('*').order('date', { ascending: false });
+    if (e1) { console.error('Erro lancamentos:', e1); showToast('Erro ao carregar lançamentos: ' + e1.message, 'error'); }
+    else if (entries) _ALL = entries.map(e => ({ ...e, value: parseFloat(e.value) }));
+
+    const { data: accs, error: e2 } = await sb.from('contas').select('*').order('created_at');
+    if (e2) console.error('Erro contas (tabela pode não existir ainda):', e2.message);
+    else if (accs) _ACCS = accs.map(a => ({ ...a, saldo_inicial: parseFloat(a.saldo_inicial || 0) }));
+
+    const { data: settings, error: e3 } = await sb.from('user_settings').select('*').eq('user_id', _USER.id).single();
+    if (e3 && e3.code !== 'PGRST116') console.error('Erro settings:', e3.message);
+    if (settings && settings.schema) {
+      _SCHEMA = mergeDefaults(JSON.parse(settings.schema));
+    } else {
+      _SCHEMA = JSON.parse(JSON.stringify(DEFAULT_SCHEMA));
+      await saveSchema();
+    }
+  } catch (err) {
+    console.error('Erro inesperado no loadAll:', err);
+    showToast('Erro de conexão com o banco', 'error');
   }
   buildCatSelect();
   buildAccountSelect();
@@ -982,10 +989,19 @@ async function saveAccount() {
     saldo_inicial: parseFloat(document.getElementById('accBalance').value) || 0,
   };
   showLoading(true);
+  let dbError;
   if (editAccountId) {
-    await sb.from('contas').update(payload).eq('id', editAccountId);
+    const { error } = await sb.from('contas').update(payload).eq('id', editAccountId);
+    dbError = error;
   } else {
-    await sb.from('contas').insert([payload]);
+    const { error } = await sb.from('contas').insert([payload]);
+    dbError = error;
+  }
+  showLoading(false);
+  if (dbError) {
+    console.error('Erro ao salvar conta:', dbError);
+    showToast('Erro ao salvar conta: ' + dbError.message, 'error');
+    return;
   }
   closeAccountModal();
   await loadAll(); refresh();
@@ -1120,10 +1136,19 @@ async function saveEntry() {
   if (!date) { showToast('Informe a data', 'error'); return; }
   const payload = { user_id: _USER.id, type: currentType, category: cat, subcategory: subcat, value, date, descricao: desc, account_id: accId };
   showLoading(true);
+  let dbError;
   if (editId) {
-    await sb.from('lancamentos').update(payload).eq('id', editId);
+    const { error } = await sb.from('lancamentos').update(payload).eq('id', editId);
+    dbError = error;
   } else {
-    await sb.from('lancamentos').insert([payload]);
+    const { error } = await sb.from('lancamentos').insert([payload]);
+    dbError = error;
+  }
+  showLoading(false);
+  if (dbError) {
+    console.error('Erro ao salvar lançamento:', dbError);
+    showToast('Erro ao salvar: ' + dbError.message, 'error');
+    return;
   }
   closeModal();
   showToast('Salvo com sucesso ✓', 'success');
@@ -1133,7 +1158,9 @@ async function saveEntry() {
 async function deleteEntry(id) {
   if (!confirm('Deseja deletar este lançamento permanentemente?')) return;
   showLoading(true);
-  await sb.from('lancamentos').delete().eq('id', id);
+  const { error } = await sb.from('lancamentos').delete().eq('id', id);
+  showLoading(false);
+  if (error) { showToast('Erro ao deletar: ' + error.message, 'error'); return; }
   showToast('Removido', 'success');
   await loadAll(); buildMonthSelects(); refresh();
 }
